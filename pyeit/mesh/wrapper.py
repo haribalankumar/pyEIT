@@ -145,6 +145,63 @@ def set_perm(mesh, anomaly=None, background=None):
     return mesh_new
 
 
+def set_perm_list(mesh, anomaly=None, background=None):
+    """ wrapper for pyEIT interface
+
+    Note
+    ----
+    update permittivity of mesh, if specified.
+
+    Parameters
+    ----------
+    mesh: dict
+        mesh structure
+    anomaly: dict, list, mandatory
+    background: float, optional
+        set background permittivity
+
+    Returns
+    -------
+    mesh_obj: dict
+        updated mesh structure, {'element', 'node', 'perm'}
+    """
+    pts = mesh['element']
+    tri = mesh['node']
+    perm = mesh['perm'].copy()
+    tri_centers = np.mean(tri[pts], axis=1)
+
+    # this code is equivalent to:
+    # >>> N = np.shape(tri)[0]
+    # >>> for i in range(N):
+    # >>>     tri_centers[i] = np.mean(pts[tri[i]], axis=0)
+    # >>> plt.plot(tri_centers[:,0], tri_centers[:,1], 'kx')
+    n = np.size(mesh['element'])
+
+    # reset background if needed
+    if background is not None:
+        perm = background * np.ones(n)
+
+    # change dtype to 'complex' for complex-valued permittivity
+#   if anomaly is not None:
+#       for attr in anomaly:
+#           if np.iscomplex(attr['perm']):
+#               perm = perm.astype('complex')
+#               break
+
+    # assign anomaly values (for elements in regions)
+    if anomaly is not None:
+        for _, attr in enumerate(anomaly):
+            # update permittivity within indices
+            nvertex = attr['num']
+            
+            perm[nvertex] = 10.0 #attr['perm']
+
+    mesh_new = {'node': tri,
+                'element': pts,
+                'perm': perm}
+    return mesh_new
+
+
 def layer_circle(n_el=16, n_fan=8, n_layer=8):
     """ generate mesh on unit-circle """
     model = MeshCircle(n_fan=n_fan, n_layer=n_layer, n_el=n_el)
